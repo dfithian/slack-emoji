@@ -10,7 +10,17 @@ import           Data.List (intersperse)
 
 data SlackEmoji = SlackEmoji
 
-dict = fromList [("doubleflip", "┻━┻ ︵ ¯\\_(ツ)_/¯ ︵ ┻━┻")]
+dict = fromList [ ("doubleflip", "┻━┻ ︵ ¯\\_(ツ)_/¯ ︵ ┻━┻")
+                , ("wide", "( ͡° ͜ʖ ͡°)")
+                , ("bear", "ʕ•ᴥ•ʔ")
+                , ("afraid", "ಠ_ಠ")
+                , ("dance", "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ ✧ﾟ･: *ヽ(◕ヮ◕ヽ)")
+                , ("orly", "﴾͡๏̯͡๏﴿ O'RLY?")
+                , ("cry", "(ಥ﹏ಥ)")
+                , ("flip_mad", "(ノಠ益ಠ)ノ彡┻━┻")
+                , ("flip_happy", "(╯°□°)╯︵  ┻━┻")
+                , ("unimpressed", "ರ_ರ")
+                , ("wtf", "¯\\(°_o)/¯") ]
 
 getKey :: MonadHandler m => Maybe Text -> m (Text)
 getKey maybeKey = case maybeKey of
