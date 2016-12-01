@@ -1,0 +1,69 @@
+name: slack-emoji
+version: '2.0'
+maintainer: Dan Fithian
+license: AllRightsReserved
+
+default-extensions:
+  - DataKinds
+  - DeriveDataTypeable
+  - DeriveGeneric
+  - EmptyDataDecls
+  - FlexibleContexts
+  - FlexibleInstances
+  - GADTs
+  - GeneralizedNewtypeDeriving
+  - LambdaCase
+  - MultiParamTypeClasses
+  - NamedFieldPuns
+  - NoImplicitPrelude
+  - NoMonomorphismRestriction
+  - OverloadedStrings
+  - PackageImports
+  - QuasiQuotes
+  - RankNTypes
+  - RecordWildCards
+  - ScopedTypeVariables
+  - StandaloneDeriving
+  - TemplateHaskell
+  - TupleSections
+  - TypeFamilies
+  - ViewPatterns
+
+ghc-options:
+  - -Wall
+  - -Werror
+  - -fwarn-tabs
+  - -threaded
+  - -O2
+  - -rtsopts
+  - -with-rtsopts=-N
+  - -with-rtsopts=-T
+
+dependencies:
+  - aeson
+  - base
+  - classy-prelude
+  - conduit-extra
+  - containers
+  - http-types
+  - lens
+  - monad-control
+  - monad-logger
+  - mtl
+  - persistent
+  - persistent-sqlite
+  - persistent-template
+  - scotty
+  - text-show
+  - wai-extra
+  - warp
+
+library:
+  source-dirs: "./."
+
+executables:
+  slack-emoji:
+    main: main.hs
+    source-dirs: app
+    dependencies:
+      - slack-emoji
