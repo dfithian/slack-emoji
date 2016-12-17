@@ -43,8 +43,11 @@ dependencies:
   - aeson
   - base
   - classy-prelude
+  - conduit
+  - conduit-combinators
   - conduit-extra
   - containers
+  - csv-conduit
   - http-types
   - lens
   - monad-control
@@ -53,10 +56,15 @@ dependencies:
   - persistent
   - persistent-sqlite
   - persistent-template
-  - scotty
+  - random-extras
+  - random-fu
+  - scalpel
+  - text
   - text-show
   - wai-extra
   - warp
+  - yesod
+  - yesod-core
 
 library:
   source-dirs: "./."
@@ -65,5 +73,10 @@ executables:
   slack-emoji:
     main: main.hs
     source-dirs: app
+    dependencies:
+      - slack-emoji
+  scraper-emoji:
+    main: main.hs
+    source-dirs: scraper
     dependencies:
       - slack-emoji

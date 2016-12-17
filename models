@@ -1,1 +1,4 @@
-
+EntryDB sql=entry
+  Id Int
+  keyword Text
+  entries [Text]

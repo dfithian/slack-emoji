@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.14.0.
+-- This file has been generated from package.yaml by hpack version 0.15.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -18,8 +18,11 @@ library
           aeson
         , base
         , classy-prelude
+        , conduit
+        , conduit-combinators
         , conduit-extra
         , containers
+        , csv-conduit
         , http-types
         , lens
         , monad-control
@@ -28,16 +31,55 @@ library
         , persistent
         , persistent-sqlite
         , persistent-template
-        , scotty
+        , random-extras
+        , random-fu
+        , scalpel
+        , text
         , text-show
         , wai-extra
         , warp
+        , yesod
+        , yesod-core
     exposed-modules:
           Emoji
           Foundation
           Model
-          Scraper
-          Settings
+          Types
+    default-language: Haskell2010
+
+executable scraper-emoji
+    main-is: main.hs
+    hs-source-dirs:
+          scraper
+    default-extensions: DataKinds DeriveDataTypeable DeriveGeneric EmptyDataDecls FlexibleContexts FlexibleInstances GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude NoMonomorphismRestriction OverloadedStrings PackageImports QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeFamilies ViewPatterns
+    ghc-options: -Wall -Werror -fwarn-tabs -threaded -O2 -rtsopts -with-rtsopts=-N -with-rtsopts=-T
+    build-depends:
+          aeson
+        , base
+        , classy-prelude
+        , conduit
+        , conduit-combinators
+        , conduit-extra
+        , containers
+        , csv-conduit
+        , http-types
+        , lens
+        , monad-control
+        , monad-logger
+        , mtl
+        , persistent
+        , persistent-sqlite
+        , persistent-template
+        , random-extras
+        , random-fu
+        , scalpel
+        , text
+        , text-show
+        , wai-extra
+        , warp
+        , yesod
+        , yesod-core
+        , slack-emoji
     default-language: Haskell2010
 
 executable slack-emoji
@@ -50,8 +92,11 @@ executable slack-emoji
           aeson
         , base
         , classy-prelude
+        , conduit
+        , conduit-combinators
         , conduit-extra
         , containers
+        , csv-conduit
         , http-types
         , lens
         , monad-control
@@ -60,9 +105,14 @@ executable slack-emoji
         , persistent
         , persistent-sqlite
         , persistent-template
-        , scotty
+        , random-extras
+        , random-fu
+        , scalpel
+        , text
         , text-show
         , wai-extra
         , warp
+        , yesod
+        , yesod-core
         , slack-emoji
     default-language: Haskell2010

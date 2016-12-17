@@ -1,27 +1,55 @@
 module Emoji where
 
-import ClassyPrelude
-import Control.Monad.Except (ExceptT, throwError)
-import qualified Data.Map as Map
-import Network.HTTP.Types (Status, notFound404)
-import Web.Scotty (ActionM)
+import ClassyPrelude hiding (Handler, lookup)
+import Data.Aeson (object, (.=))
+import Conduit (mapM_C)
+import Control.Lens (_Just, each, from, over, toListOf, preview, view)
+import Data.Conduit (connect, fuse)
+import Data.CSV.Conduit (defCSVSettings, intoCSV)
+import Data.CSV.Conduit.Conversion (Named(Named))
+import Data.List (nub)
+import Data.List.NonEmpty (NonEmpty((:|)))
+import qualified Data.List.NonEmpty as NEL
+import Data.Random.Extras (choice)
+import Database.Persist (SelectOpt(LimitTo), entityKey, entityVal, insert_, repsert, selectFirst, selectList, (==.))
+import Foundation (Handler, apiBadRequest, apiNotFound, runApiResult, runDb, runRandom)
+import qualified Model as M
+import qualified Types as T
+import Yesod.Core (fileSource, lookupFile, lookupGetParam)
 
-dict :: Map Text Text
-dict = Map.fromList [ ("doubleflip", "┻━┻ ︵ ¯\\_(ツ)_/¯ ︵ ┻━┻")
-                , ("wide", "( ͡° ͜ʖ ͡°)")
-                , ("bear", "ʕ•ᴥ•ʔ")
-                , ("afraid", "ಠ_ಠ")
-                , ("dance", "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ ✧ﾟ･: *ヽ(◕ヮ◕ヽ)")
-                , ("orly", "﴾͡๏̯͡๏﴿ O'RLY?")
-                , ("cry", "(ಥ﹏ಥ)")
-                , ("flip_mad", "(ノಠ益ಠ)ノ彡┻━┻")
-                , ("flip_happy", "(╯°□°)╯︵  ┻━┻")
-                , ("unimpressed", "ರ_ರ")
-                , ("wtf", "¯\\(°_o)/¯")
-                , ("reset_table", "┬──┬◡ﾉ(° -°ﾉ)") ]
+oneOf :: NonEmpty a -> IO a
+oneOf (x :| []) = pure x
+oneOf (x :| xs) = runRandom $ choice (x:xs)
 
-getValue :: Text -> ExceptT (Status, Text) ActionM Text
-getValue key = case (Map.lookup key dict, key) of
-    (Just value, _) -> pure value
-    (_, "help") -> pure $ "keys: " ++ (concat . intersperse ", " . Map.keys $ dict)
-    (Nothing, _) -> throwError (notFound404, "couldn't find key " <> key)
+getEmojiR :: Handler ()
+getEmojiR = runApiResult $ do
+  k <- maybe (apiBadRequest "missing param \'text\'") pure =<< lift (lookupGetParam "text")
+  -- TODO convert everything to lower case
+  entries <- fromMaybe [] . preview (_Just . from M.keyedEntryIso . T.ent . T.entryEntries) <$> runDb (selectFirst [M.EntryDBKeyword ==. k] [])
+  v <- case entries of
+    [] -> do
+      allKeys <- toListOf (each . from M.keyedEntryIso . T.ent . T.entryKeyword) <$> runDb (selectList [] [LimitTo 100])
+      case NEL.nonEmpty allKeys of
+        Just ks -> do
+          suggestion <- liftIO $ oneOf ks
+          pure $ "No entries for " <> k <> "; try " <> suggestion <> " instead"
+        Nothing -> pure $ "No entries for " <> k
+    x:xs -> liftIO . oneOf $ x :| xs
+  pure $ object [ "response_type" .= asText "in_channel"
+                , "text" .= v ]
+
+-- handle a csv upload
+postEmojiR :: Handler ()
+postEmojiR = runApiResult $ do
+  fileInfo <- maybe (apiBadRequest "No file provided") pure =<< lookupFile "file"
+  fileSource fileInfo
+    `fuse` intoCSV defCSVSettings
+    `connect` mapM_C ( \ (Named new) -> do
+                         prevMay <- preview (_Just . from M.keyedEntryIso) <$> runDb (selectFirst [M.EntryDBKeyword ==. view T.entryKeyword new] [])
+                         case prevMay of
+                           Just prev -> -- merge existing entries
+                             let replacement = over (T.ent . T.entryEntries) (nub . (<> view T.entryEntries new)) prev
+                                 (replacementKey, replacementEntity) = entityKey &&& entityVal $ view M.keyedEntryIso replacement
+                             in runDb $ repsert replacementKey replacementEntity
+                           Nothing -> runDb $ insert_ $ view M.entryIso new
+                     )
