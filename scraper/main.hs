@@ -1,30 +1,46 @@
 import ClassyPrelude
-import Data.CSV.Conduit (defCSVSettings, writeCSVFile)
-import Data.CSV.Conduit.Conversion (Named(Named))
-import System.IO (IOMode(WriteMode))
-import Text.HTML.Scalpel (Scraper, attr, chroots, hasClass, innerHTML, scrapeURL, text, (//), (@:))
+import Conduit (Conduit, mapC, runResourceT, sinkFile)
+import Data.Conduit (connect, fuse)
+import Data.Conduit.List (sourceList)
+import Data.CSV.Conduit (defCSVSettings, fromCSV, writeHeaders)
+import Data.CSV.Conduit.Conversion (toNamedRecord)
+import Data.List (nub)
+import Text.HTML.Scalpel
+  ( Config(Config), Scraper
+  , attr, chroots, hasClass, innerHTML, scrapeURL, scrapeURLWithConfig, text, utf8Decoder
+  , (//), (@:) )
 import qualified Types as T
 
-scrapeEntryPage :: String -> String -> IO T.Entry
+defaultConfig :: Config Text
+defaultConfig = Config [] utf8Decoder
+
+scrapeEntryPage :: Text -> Text -> IO T.Entry
 scrapeEntryPage url keyword = do
-  entries <- scrapeURL ("http://slangit.com/" <> url) $ chroots ("table" @: [hasClass "emoticon"]) $ text ("td" @: [hasClass "emote"])
-  forM_ entries $ \ xs -> putStrLn $ pack $ "words: " <> intercalate ", " xs
-  pure . T.Entry (pack keyword) . map pack . fromMaybe [] $ entries
+  entries <- scrapeURLWithConfig defaultConfig ("http://slangit.com/" <> unpack url) $
+    chroots ("table" @: [hasClass "emoticon"]) $ text ("td" @: [hasClass "emote"])
+  forM_ entries $ \ xs -> putStrLn $ "words: " <> intercalate ", " xs
+  pure . T.Entry keyword . fromMaybe [] $ entries
 
 scrapeListPage :: String -> IO [T.Entry]
 scrapeListPage url = do
   xs <- fromMaybe [] <$> scrapeURL url (chroots ("table" // "tbody" // "tr" // "td" // "a" ) getMetadata)
-  forM_ xs $ \ (u, k) -> putStrLn $ "url: " <> pack u <> ", keyword: " <> pack k
-  forM xs $ uncurry scrapeEntryPage
+  forM_ xs $ \ (u, ks) -> putStrLn $ "url: " <> u <> ", keywords: " <> intercalate ", " ks
+  map join $ forM xs $ \ (u, ks) -> forM ks $ scrapeEntryPage u
     where
-      getMetadata :: Scraper String (String, String)
+      getMetadata :: Scraper Text (Text, [Text])
       getMetadata = do
         href <- attr "href" "a"
-        keyword <- innerHTML "a"
-        pure (href, keyword)
+        keyword <- toLower <$> innerHTML "a"
+        let keywords = nub $ keyword:(words keyword)
+        pure (href, keywords)
 
 main :: IO ()
 main = do
-  -- TODO convert everything to lower case
   entries <- scrapeListPage "http://slangit.com/emoticons/kaomoji"
-  writeCSVFile defCSVSettings "entries.csv" WriteMode (Named <$> entries)
+  let headerRow :: forall m . Monad m => Conduit (Map ByteString ByteString) m ByteString
+      headerRow = writeHeaders defCSVSettings
+  runResourceT $ do
+    sourceList entries
+      `fuse` mapC toNamedRecord
+      `fuse` (headerRow >> fromCSV defCSVSettings)
+      `connect` sinkFile "entries.csv"

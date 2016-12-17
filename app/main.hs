@@ -13,7 +13,7 @@ mkYesodDispatch "App" resourcesApp
 main :: IO ()
 main = do
   -- create the database pool
-  appConnectionPool <- flip runLoggingT withLogging $ createSqlitePool (asText "slack-emoji") 1
+  appConnectionPool <- flip runLoggingT withLogging $ createSqlitePool (asText "slack-emoji-db") 1
 
   -- create tables and wipe them
   flip runSqlPool appConnectionPool $ do

@@ -1,13 +1,4 @@
-resolver: lts-7.13
-compiler-check: match-exact
-compiler: ghc-8.0.1.20161117
-setup-info:
-  ghc:
-    macosx:
-      8.0.1.20161117:
-        url: https://downloads.haskell.org/~ghc/8.0.2-rc1/ghc-8.0.1.20161117-x86_64-apple-darwin.tar.xz
-        content-length: 113379688
-        sha1: 53ed03d986a49ea680c291540ce44ce469514d7c
+resolver: lts-7.12
 packages:
 - '.'
 extra-deps:
@@ -16,3 +7,5 @@ extra-deps:
   - random-extras-0.19
 flags: {}
 extra-package-dbs: []
+docker:
+  enable: true

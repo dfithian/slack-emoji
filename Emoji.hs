@@ -12,7 +12,7 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NEL
 import Data.Random.Extras (choice)
 import Database.Persist (SelectOpt(LimitTo), entityKey, entityVal, insert_, repsert, selectFirst, selectList, (==.))
-import Foundation (Handler, apiBadRequest, apiNotFound, runApiResult, runDb, runRandom)
+import Foundation (Handler, apiBadRequest, runApiResult, runDb, runRandom)
 import qualified Model as M
 import qualified Types as T
 import Yesod.Core (fileSource, lookupFile, lookupGetParam)
@@ -23,8 +23,7 @@ oneOf (x :| xs) = runRandom $ choice (x:xs)
 
 getEmojiR :: Handler ()
 getEmojiR = runApiResult $ do
-  k <- maybe (apiBadRequest "missing param \'text\'") pure =<< lift (lookupGetParam "text")
-  -- TODO convert everything to lower case
+  k <- maybe (apiBadRequest "missing param \'text\'") (pure . toLower) =<< lift (lookupGetParam "text")
   entries <- fromMaybe [] . preview (_Just . from M.keyedEntryIso . T.ent . T.entryEntries) <$> runDb (selectFirst [M.EntryDBKeyword ==. k] [])
   v <- case entries of
     [] -> do

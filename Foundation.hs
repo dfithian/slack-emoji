@@ -29,7 +29,7 @@ runDb action = do
   pool <- asks appConnectionPool
   runSqlPool action pool
 
-runRandom :: (MonadIO m, MonadRandom m) => RVar a -> m a
+runRandom :: MonadRandom m => RVar a -> m a
 runRandom = flip runRVar StdRandom
 
 type ApiResult m a = ExceptT (Status, Text) m a
