@@ -32,8 +32,8 @@ getEmojiR = do
         case NEL.nonEmpty allKeys of
           Just ks -> do
             suggestion <- liftIO $ oneOf ks
-            pure $ "No entries for " <> k <> "; try " <> suggestion <> " instead"
-          Nothing -> pure $ "No entries for " <> k
+            pure $ "No entries for \'" <> k <> "\'; try \'" <> suggestion <> "\' instead"
+          Nothing -> pure $ "No entries for \'" <> k <> "\'"
       x:xs -> liftIO . oneOf $ x :| xs
 
 -- handle a csv upload
