@@ -1,14 +1,20 @@
 module Foundation (module Foundation, Route(..)) where
 
-import ClassyPrelude
+import ClassyPrelude hiding (intersect, span)
 import Control.Lens (_2, over)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.Logger (Loc, LogLevel, LogSource, LogStr)
 import Data.Aeson (ToJSON, toJSON, object, (.=))
 import Data.Random (MonadRandom, RVar, StdRandom(StdRandom), runRVar)
+import Data.List (intersect)
+import Data.Text (split)
 import Database.Persist.Sql (ConnectionPool, SqlPersistT, runSqlPool)
-import Network.HTTP.Types (Status, badRequest400, internalServerError500, notFound404, ok200)
-import Yesod.Core (MonadHandler, Route, Yesod, renderRoute, sendStatusJSON)
+import Network.HTTP.Types (Status, hAccept, badRequest400, internalServerError500, notFound404, ok200)
+import Text.Blaze.Html5 (body, span)
+import Yesod.Core
+  ( MonadHandler, Route, TypedContent(TypedContent), Yesod
+  , renderRoute, sendResponseStatus
+  , lookupHeader, toContent, toHtml, typeHtml, typeJson )
 import Yesod.Core.Dispatch (mkYesodData, parseRoutes)
 
 data App = App
@@ -47,5 +53,23 @@ apiNotFound = throwError . (notFound404,)
 apiInternalError :: MonadBaseControl IO m => Text -> ApiResult m a
 apiInternalError = throwError . (internalServerError500,)
 
-runApiResult :: (MonadBaseControl IO m, MonadHandler m) => forall a . ToJSON a => ApiResult m a -> m ()
-runApiResult result = either (uncurry sendStatusJSON . over _2 ApiErrorReason) (sendStatusJSON ok200) =<< runExceptT result
+asHtml :: Text -> TypedContent
+asHtml v = TypedContent typeHtml . toContent . body . span . toHtml $ v
+
+asJson :: Text -> TypedContent
+asJson v = TypedContent typeJson . toContent $ object ["response_type" .= asText "in_channel", "text" .= v]
+
+asTypedContent :: MonadHandler m => m (Text -> TypedContent)
+asTypedContent = do
+  accept <- split (flip elem [',', ';']) . decodeUtf8 . fromMaybe "application/json" <$> lookupHeader hAccept
+  let validAcceptTypes = ["text/html", "application/json"]
+  pure $ case headMay (intersect accept validAcceptTypes) of
+    Just "text/html" -> asHtml
+    Just "application/json" -> asJson
+    _ -> asJson
+
+runApiResult :: (MonadBaseControl IO m, MonadHandler m) => (a -> TypedContent) -> ApiResult m a -> m ()
+runApiResult serialize result = do
+  onError <- asTypedContent
+  (status, message) <- either (over _2 onError) ((ok200,) . serialize) <$> runExceptT result
+  sendResponseStatus status message

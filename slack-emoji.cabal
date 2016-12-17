@@ -17,6 +17,7 @@ library
     build-depends:
           aeson
         , base
+        , blaze-html
         , classy-prelude
         , conduit
         , conduit-combinators
@@ -56,6 +57,7 @@ executable scraper-emoji
     build-depends:
           aeson
         , base
+        , blaze-html
         , classy-prelude
         , conduit
         , conduit-combinators
@@ -91,6 +93,7 @@ executable slack-emoji
     build-depends:
           aeson
         , base
+        , blaze-html
         , classy-prelude
         , conduit
         , conduit-combinators
