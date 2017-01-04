@@ -56,20 +56,22 @@ apiInternalError = throwError . (internalServerError500,)
 asHtml :: Text -> TypedContent
 asHtml v = TypedContent typeHtml . toContent . body . span . toHtml $ v
 
-asJson :: Text -> TypedContent
-asJson v = TypedContent typeJson . toContent $ object ["response_type" .= asText "in_channel", "text" .= v]
+asJson :: Bool -> Text -> TypedContent
+asJson b v = TypedContent typeJson . toContent . object . catMaybes $
+  [ if b then Just ("response_type" .= asText "in_channel") else Nothing
+  , Just ("text" .= v) ]
 
-asTypedContent :: MonadHandler m => m (Text -> TypedContent)
-asTypedContent = do
+asTypedContent :: MonadHandler m => Bool -> m (Text -> TypedContent)
+asTypedContent b = do
   accept <- split (flip elem [',', ';']) . decodeUtf8 . fromMaybe "application/json" <$> lookupHeader hAccept
   let validAcceptTypes = ["text/html", "application/json"]
   pure $ case headMay (intersect accept validAcceptTypes) of
     Just "text/html" -> asHtml
-    Just "application/json" -> asJson
-    _ -> asJson
+    Just "application/json" -> asJson b
+    _ -> asJson b
 
 runApiResult :: (MonadBaseControl IO m, MonadHandler m) => (a -> TypedContent) -> ApiResult m a -> m ()
 runApiResult serialize result = do
-  onError <- asTypedContent
+  onError <- asTypedContent False
   (status, message) <- either (over _2 onError) ((ok200,) . serialize) <$> runExceptT result
   sendResponseStatus status message

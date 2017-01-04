@@ -11,7 +11,7 @@ import Data.List.NonEmpty (NonEmpty((:|)))
 import qualified Data.List.NonEmpty as NEL
 import Data.Random.Extras (choice)
 import Database.Persist (SelectOpt(LimitTo), entityKey, entityVal, insert_, repsert, selectFirst, selectList, (==.))
-import Foundation (Handler, apiBadRequest, asTypedContent, runApiResult, runDb, runRandom)
+import Foundation (Handler, apiBadRequest, apiNotFound, asTypedContent, runApiResult, runDb, runRandom)
 import qualified Model as M
 import qualified Types as T
 import Yesod.Core (fileSource, lookupFile, lookupGetParam, toTypedContent)
@@ -22,7 +22,7 @@ oneOf (x :| xs) = runRandom $ choice (x:xs)
 
 getEmojiR :: Handler ()
 getEmojiR = do
-  serialize <- asTypedContent
+  serialize <- asTypedContent True
   runApiResult serialize $ do
     k <- maybe (apiBadRequest "missing param \'text\'") (pure . toLower) =<< lift (lookupGetParam "text")
     entries <- fromMaybe [] . preview (_Just . from M.keyedEntryIso . T.ent . T.entryEntries) <$> runDb (selectFirst [M.EntryDBKeyword ==. k] [])
@@ -32,8 +32,8 @@ getEmojiR = do
         case NEL.nonEmpty allKeys of
           Just ks -> do
             suggestion <- liftIO $ oneOf ks
-            pure $ "No entries for \'" <> k <> "\'; try \'" <> suggestion <> "\' instead"
-          Nothing -> pure $ "No entries for \'" <> k <> "\'"
+            apiNotFound $ "No entries for \'" <> k <> "\'; try \'" <> suggestion <> "\' instead"
+          Nothing -> apiNotFound $ "No entries for \'" <> k <> "\'"
       x:xs -> liftIO . oneOf $ x :| xs
 
 -- handle a csv upload
