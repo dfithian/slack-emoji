@@ -17,8 +17,8 @@ data Keyed a = Keyed
   }
 
 data Entry = Entry
-  { _entryKeyword :: Text
-  , _entryEntries :: [Text]
+  { _entryKeyword  :: Text
+  , _entryEntries  :: [Text]
   } deriving (Eq, Ord, Show)
 
 data Synonym = Synonym

@@ -20,18 +20,22 @@ import Yesod.Core.Dispatch (mkYesodData, parseRoutes)
 
 data App = App
   { appConnectionPool            :: ConnectionPool
+  -- ^ The database connection pool
   , appSettings                  :: AppSettings
+  -- ^ Settings as defined in "Settings"
   , appRemainingWordsApiRequests :: TVar Int
+  -- ^ Remaining requests to the rate-limited words api
+  , appNextWordsApiRefresh       :: TVar UTCTime
+  -- ^ The next time to check for synonym refresh
+  , appLog                       :: Loc -> LogSource -> LogLevel -> LogStr -> IO ()
+  -- ^ The logging function for the application, the very same that Yesod uses
   }
 
 mkYesodData "App" [parseRoutes|
-/ EmojiR GET POST
+/ EmojiR GET
 |]
 
 instance Yesod App
-
-withLogging :: Loc -> LogSource -> LogLevel -> LogStr -> IO ()
-withLogging _ _ _ _ = pure ()
 
 runDb :: (MonadBaseControl IO m, MonadReader App m) => SqlPersistT m a -> m a
 runDb action = do

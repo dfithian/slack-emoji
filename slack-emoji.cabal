@@ -44,9 +44,11 @@ library
         , yesod
         , yesod-core
     exposed-modules:
+          Application
           Emoji
           Foundation
           Model
+          Scheduler
           Settings
           Types
           WordsApi

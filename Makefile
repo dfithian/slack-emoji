@@ -20,6 +20,7 @@ build:
 container: build
 	cp $(stack_bin_dir)/slack-emoji $(docker)
 	cp settings.yml $(docker)
+	cp entries.csv $(docker)
 	cd $(docker) && docker build -t dfithian/slack-emoji:$(docker_tag) .
 
 publish: container
