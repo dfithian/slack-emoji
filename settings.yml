@@ -1,0 +1,4 @@
+words-api:
+  token: "oCH9aQjiSpmshy3VMIvzFrNSzrWvp1PnPtqjsn03QO78lbSJgD"
+  url: "https://wordsapiv1.p.mashape.com"
+  limit: 2500

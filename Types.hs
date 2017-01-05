@@ -6,8 +6,6 @@ import Data.CSV.Conduit.Conversion
   ( ToNamedRecord(toNamedRecord), namedRecord, (.=)
   , FromNamedRecord(parseNamedRecord), (.:) )
 import Data.Text (splitOn)
-import TextShow (showt)
-import TextShow.TH (deriveTextShow)
 
 -- make this polymorphic in case we ever tried to make it something it's not
 type Key a = Int
@@ -21,18 +19,20 @@ data Keyed a = Keyed
 data Entry = Entry
   { _entryKeyword :: Text
   , _entryEntries :: [Text]
-  }
+  } deriving (Eq, Ord, Show)
 
-deriving instance Eq Entry
+data Synonym = Synonym
+  { _synonymKeyword  :: Text
+  , _synonymSynonyms :: [Text]
+  , _synonymUpdated  :: UTCTime
+  } deriving (Eq, Ord, Show)
 
 deriving instance Generic Entry
+deriving instance Generic Synonym
 
 makeLenses ''Keyed
 makeLenses ''Entry
-
-deriveTextShow ''Entry
-
-instance Show Entry where show = unpack . showt
+makeLenses ''Synonym
 
 instance ToNamedRecord Entry where
   toNamedRecord (Entry keyword entries) = namedRecord ["keyword" .= keyword, "entries" .= intercalate "," entries]

@@ -2,3 +2,9 @@ EntryDB sql=entry
   Id Int
   keyword Text
   entries [Text]
+
+SynonymDB sql=synonym
+  Id Int
+  keyword Text
+  synonyms [Text]
+  updated UTCTime

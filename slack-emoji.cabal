@@ -3,7 +3,7 @@
 -- see: https://github.com/sol/hpack
 
 name:               slack-emoji
-version:            2.0
+version:            2.1
 maintainer:         Dan Fithian
 license:            AllRightsReserved
 cabal-version:      >= 1.10
@@ -29,6 +29,7 @@ library
         , monad-control
         , monad-logger
         , mtl
+        , network-uri
         , persistent
         , persistent-sqlite
         , persistent-template
@@ -36,16 +37,19 @@ library
         , random-fu
         , scalpel
         , text
-        , text-show
+        , time
         , wai-extra
         , warp
+        , wreq
         , yesod
         , yesod-core
     exposed-modules:
           Emoji
           Foundation
           Model
+          Settings
           Types
+          WordsApi
     default-language: Haskell2010
 
 executable scraper-emoji
@@ -69,6 +73,7 @@ executable scraper-emoji
         , monad-control
         , monad-logger
         , mtl
+        , network-uri
         , persistent
         , persistent-sqlite
         , persistent-template
@@ -76,9 +81,10 @@ executable scraper-emoji
         , random-fu
         , scalpel
         , text
-        , text-show
+        , time
         , wai-extra
         , warp
+        , wreq
         , yesod
         , yesod-core
         , slack-emoji
@@ -105,6 +111,7 @@ executable slack-emoji
         , monad-control
         , monad-logger
         , mtl
+        , network-uri
         , persistent
         , persistent-sqlite
         , persistent-template
@@ -112,9 +119,10 @@ executable slack-emoji
         , random-fu
         , scalpel
         , text
-        , text-show
+        , time
         , wai-extra
         , warp
+        , wreq
         , yesod
         , yesod-core
         , slack-emoji

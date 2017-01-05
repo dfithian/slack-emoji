@@ -14,18 +14,18 @@ import qualified Types as T
 defaultConfig :: Config Text
 defaultConfig = Config [] utf8Decoder
 
-scrapeEntryPage :: Text -> Text -> IO T.Entry
-scrapeEntryPage url keyword = do
+scrapeSlangitEntryPage :: Text -> Text -> IO T.Entry
+scrapeSlangitEntryPage url keyword = do
   entries <- scrapeURLWithConfig defaultConfig ("http://slangit.com/" <> unpack url) $
     chroots ("table" @: [hasClass "emoticon"]) $ text ("td" @: [hasClass "emote"])
   forM_ entries $ \ xs -> putStrLn $ "words: " <> intercalate ", " xs
   pure . T.Entry keyword . fromMaybe [] $ entries
 
-scrapeListPage :: String -> IO [T.Entry]
-scrapeListPage url = do
-  xs <- fromMaybe [] <$> scrapeURL url (chroots ("table" // "tbody" // "tr" // "td" // "a" ) getMetadata)
+scrapeSlangitListPage :: String -> IO [T.Entry]
+scrapeSlangitListPage url = do
+  xs <- fromMaybe [] <$> scrapeURL url (chroots ("table" // "tbody" // "tr" // "td" // "a") getMetadata)
   forM_ xs $ \ (u, ks) -> putStrLn $ "url: " <> u <> ", keywords: " <> intercalate ", " ks
-  map join $ forM xs $ \ (u, ks) -> forM ks $ scrapeEntryPage u
+  map join $ forM xs $ \ (u, ks) -> forM ks $ scrapeSlangitEntryPage u
     where
       getMetadata :: Scraper Text (Text, [Text])
       getMetadata = do
@@ -36,11 +36,11 @@ scrapeListPage url = do
 
 main :: IO ()
 main = do
-  entries <- scrapeListPage "http://slangit.com/emoticons/kaomoji"
+  slangitEntries <- scrapeSlangitListPage "http://slangit.com/emoticons/kaomoji"
   let headerRow :: forall m . Monad m => Conduit (Map ByteString ByteString) m ByteString
       headerRow = writeHeaders defCSVSettings
   runResourceT $ do
-    sourceList entries
+    sourceList slangitEntries
       `fuse` mapC toNamedRecord
       `fuse` (headerRow >> fromCSV defCSVSettings)
       `connect` sinkFile "entries.csv"

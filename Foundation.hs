@@ -10,6 +10,7 @@ import Data.List (intersect)
 import Data.Text (split)
 import Database.Persist.Sql (ConnectionPool, SqlPersistT, runSqlPool)
 import Network.HTTP.Types (Status, hAccept, badRequest400, internalServerError500, notFound404, ok200)
+import Settings (AppSettings)
 import Text.Blaze.Html5 (body, span)
 import Yesod.Core
   ( MonadHandler, Route, TypedContent(TypedContent), Yesod
@@ -18,7 +19,9 @@ import Yesod.Core
 import Yesod.Core.Dispatch (mkYesodData, parseRoutes)
 
 data App = App
-  { appConnectionPool :: ConnectionPool
+  { appConnectionPool            :: ConnectionPool
+  , appSettings                  :: AppSettings
+  , appRemainingWordsApiRequests :: TVar Int
   }
 
 mkYesodData "App" [parseRoutes|

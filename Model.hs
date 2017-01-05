@@ -32,3 +32,27 @@ entryIso = iso toDb toApi
     toApi = T.Entry
       <$> view entryDBKeyword
       <*> view entryDBEntries
+
+keyedSynonymIso :: Iso' (T.Keyed T.Synonym) (Entity SynonymDB)
+keyedSynonymIso = iso toDb toApi
+  where
+    toDb = do
+      ent <- view (T.ent . synonymIso)
+      k <- view (T.key . to SynonymDBKey)
+      pure $ Entity k ent
+    toApi = do
+      ent <- view (to entityVal . from synonymIso)
+      k <- view (to entityKey . to unSynonymDBKey)
+      pure $ T.Keyed k ent
+
+synonymIso :: Iso' T.Synonym SynonymDB
+synonymIso = iso toDb toApi
+  where
+    toDb = SynonymDB
+      <$> view T.synonymKeyword
+      <*> view T.synonymSynonyms
+      <*> view T.synonymUpdated
+    toApi = T.Synonym
+      <$> view synonymDBKeyword
+      <*> view synonymDBSynonyms
+      <*> view synonymDBUpdated
