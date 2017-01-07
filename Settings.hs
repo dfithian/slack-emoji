@@ -23,7 +23,8 @@ instance FromJSON AppSettings where
   parseJSON = withObject "AppSettings" $ \ obj ->
     AppSettings <$> obj .: "words-api"
                 <*> (fromInteger . (*86400) . fromMaybe 2 <$> obj .:? "synonym-validity-time")
-                <*> (fromInteger . (*3600) . fromMaybe 2 <$> obj .:? "synonym-refresh-interval")
+                -- <*> (fromInteger . (*3600) . fromMaybe 2 <$> obj .:? "synonym-refresh-interval")
+                <*> (fromInteger . fromMaybe 2 <$> obj .:? "synonym-refresh-interval")
                 <*> (fromMaybe 10 <$> obj .:? "max-db-connections")
                 <*> (fromMaybe "entries.csv" <$> obj .:? "entries-seed-csv")
 

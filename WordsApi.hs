@@ -8,7 +8,7 @@ import Data.Aeson (FromJSON(parseJSON), eitherDecodeStrict', withObject, (.:))
 import Foundation (App, appRemainingWordsApiRequests, appSettings)
 import Network.HTTP.Types (HeaderName, statusIsSuccessful)
 import Network.URI (URI(uriPath))
-import Network.Wreq (Response, defaults, header, getWith, responseBody, responseHeader, responseStatus)
+import Network.Wreq (Response, checkStatus, defaults, header, getWith, responseBody, responseHeader, responseStatus)
 import Settings (appWordsApi, wordsApiToken, wordsApiUri)
 
 requestsRemainingHeader :: HeaderName
@@ -38,10 +38,11 @@ instance FromJSON WordsApiSynonyms where
 
 parseWordsApiResponse :: FromJSON a => Response ByteString -> Either Text a
 parseWordsApiResponse response =
-  case (statusIsSuccessful $ view responseStatus response) of
-    True -> over _Left (pack . (<>) "failed to decode response: ") . eitherDecodeStrict' . view responseBody $ response
-    False -> either (Left . pack . (<>) "failed to decode response: ") (Left . (<>) "request failed: " . view wordsApiErrorMessage)
-      . eitherDecodeStrict' . view responseBody $ response
+  let body = view responseBody response
+  in case view responseStatus response of
+    (statusIsSuccessful -> True) ->
+      over _Left (\ msg -> pack $ "failed to decode response \'" <> unpack (decodeUtf8 body) <> "\': " <> msg) $ eitherDecodeStrict' body
+    status -> Left $ "failed with error " <> tshow status
 
 wordsApiRequest :: (MonadBaseControl IO m, MonadIO m, MonadLogger m, MonadReader App m, FromJSON a) => Text -> m (Either Text a)
 wordsApiRequest path = do
@@ -52,7 +53,9 @@ wordsApiRequest path = do
     True -> do
       uri <- asks (wordsApiUri . appWordsApi . appSettings)
       token <- asks (wordsApiToken . appWordsApi . appSettings)
-      let opts = set (header requestMashapeKey) [encodeUtf8 token] defaults
+      let opts = set (header requestMashapeKey) [encodeUtf8 token]
+                 . set checkStatus (Just $ \ _ _ _ -> Nothing)
+                 $ defaults
       rawResponse <- liftIO $ getWith opts (show $ uri { uriPath = unpack path })
       let requestsRemainingMay = do
             hdr <- preview (responseHeader requestsRemainingHeader) rawResponse

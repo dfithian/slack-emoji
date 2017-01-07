@@ -3,7 +3,7 @@ EntryDB sql=entry
   keyword Text
   entries [Text]
 
-SynonymDB
+SynonymDB sql=synonym
   Id Int
   keyword Text
   synonyms [Text]

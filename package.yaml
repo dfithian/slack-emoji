@@ -49,6 +49,7 @@ dependencies:
   - conduit-extra
   - containers
   - csv-conduit
+  - fast-logger
   - http-types
   - lens
   - monad-control
@@ -64,6 +65,7 @@ dependencies:
   - text
   - time
   - wai-extra
+  - wai-logger
   - warp
   - wreq
   - yesod

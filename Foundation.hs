@@ -3,7 +3,6 @@ module Foundation (module Foundation, Route(..)) where
 import ClassyPrelude hiding (intersect, span)
 import Control.Lens (_2, over)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
-import Control.Monad.Logger (Loc, LogLevel, LogSource, LogStr)
 import Data.Aeson (ToJSON, toJSON, object, (.=))
 import Data.Random (MonadRandom, RVar, StdRandom(StdRandom), runRVar)
 import Data.List (intersect)
@@ -13,10 +12,11 @@ import Network.HTTP.Types (Status, hAccept, badRequest400, internalServerError50
 import Settings (AppSettings)
 import Text.Blaze.Html5 (body, span)
 import Yesod.Core
-  ( MonadHandler, Route, TypedContent(TypedContent), Yesod
+  ( MonadHandler, Route, TypedContent(TypedContent), Yesod(makeLogger)
   , renderRoute, sendResponseStatus
   , lookupHeader, toContent, toHtml, typeHtml, typeJson )
 import Yesod.Core.Dispatch (mkYesodData, parseRoutes)
+import Yesod.Core.Types (Logger)
 
 data App = App
   { appConnectionPool            :: ConnectionPool
@@ -27,8 +27,9 @@ data App = App
   -- ^ Remaining requests to the rate-limited words api
   , appNextWordsApiRefresh       :: TVar UTCTime
   -- ^ The next time to check for synonym refresh
-  , appLog                       :: Loc -> LogSource -> LogLevel -> LogStr -> IO ()
-  -- ^ The logging function for the application, the very same that Yesod uses
+  , appLogger                    :: Logger
+  -- ^ The logger for the application, the very same that Yesod uses
+  , appScheduler                 :: Async ()
   }
 
 mkYesodData "App" [parseRoutes|
@@ -36,6 +37,7 @@ mkYesodData "App" [parseRoutes|
 |]
 
 instance Yesod App
+  where makeLogger = pure . appLogger
 
 runDb :: (MonadBaseControl IO m, MonadReader App m) => SqlPersistT m a -> m a
 runDb action = do
