@@ -3,7 +3,6 @@ module Application where
 
 import ClassyPrelude
 import Control.Monad.Logger (runLoggingT)
-import Data.Time.Clock (addUTCTime)
 import Database.Persist.Sqlite (createSqlitePool)
 import Emoji (getEmojiR)
 import Foundation
@@ -12,7 +11,7 @@ import Foundation
 import qualified Model as M
 import Network.Wai.Logger (clockDateCacher)
 import Scheduler (wordsApiScheduler)
-import Settings (appMaxDbConnections, appSynonymRefreshInterval, appWordsApi, wordsApiLimit)
+import Settings (appMaxDbConnections, appWordsApi, wordsApiLimit)
 import System.Log.FastLogger (defaultBufSize, newStdoutLoggerSet)
 import Yesod (messageLoggerSource, mkYesodDispatch, warp)
 import Yesod.Core.Types (Logger(Logger))
@@ -33,7 +32,7 @@ makeFoundation = do
     createSqlitePool "slack-emoji-db" (appMaxDbConnections appSettings)
 
   appRemainingWordsApiRequests <- newTVarIO . wordsApiLimit . appWordsApi $ appSettings
-  appNextWordsApiRefresh <- newTVarIO . flip addUTCTime now . appSynonymRefreshInterval $ appSettings
+  appNextWordsApiRefresh <- newTVarIO now
 
   appLogger <- do
     logSet <- newStdoutLoggerSet defaultBufSize

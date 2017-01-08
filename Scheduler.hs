@@ -27,7 +27,7 @@ wordsApiScheduler = do
         when (now > nextRefresh) $ do
           $logInfo "Updating stale synonyms"
           outdated <- toListOf (each . from M.keyedSynonymIso)
-            <$> runDb (selectList [M.SynonymDBUpdated <. addUTCTime (negate validityTime) now] [LimitTo 10])
+            <$> runDb (selectList [M.SynonymDBUpdated <. addUTCTime (negate validityTime) now] [LimitTo 1000])
           mapM_ updateFor outdated
           liftIO . atomically . writeTVar nextRefreshTv . addUTCTime refreshInterval $ now
 
