@@ -6,11 +6,10 @@ import Control.Monad.Logger (runLoggingT)
 import Database.Persist.Sqlite (createSqlitePool)
 import Emoji (getEmojiR)
 import Foundation
-  ( App(App, appConnectionPool, appLogger, appNextWordsApiRefresh, appRemainingWordsApiRequests, appScheduler, appSettings)
-  , Route(EmojiR), resourcesApp )
+  ( App (App, _appConnectionPool, _appLogger, _appNextWordsApiRefresh, _appRemainingWordsApiRequests, _appSettings)
+  , Route (EmojiR), resourcesApp )
 import qualified Model as M
 import Network.Wai.Logger (clockDateCacher)
-import Scheduler (wordsApiScheduler)
 import Settings (appMaxDbConnections, appWordsApi, wordsApiLimit)
 import System.Log.FastLogger (defaultBufSize, newStdoutLoggerSet)
 import Yesod (messageLoggerSource, mkYesodDispatch, warp)
@@ -24,32 +23,27 @@ makeFoundation = do
   now <- liftIO getCurrentTime
 
   -- load the settings
-  appSettings <- loadYamlSettings ["settings.yml"] [] useEnv
+  _appSettings <- loadYamlSettings ["settings.yml"] [] useEnv
 
   -- create the database pool
   let noLogging = \ _ _ _ _ -> pure ()
-  appConnectionPool <- flip runLoggingT noLogging $
-    createSqlitePool "slack-emoji-db" (appMaxDbConnections appSettings)
+  _appConnectionPool <- flip runLoggingT noLogging $
+    createSqlitePool "slack-emoji-db" (appMaxDbConnections _appSettings)
 
-  appRemainingWordsApiRequests <- newTVarIO . wordsApiLimit . appWordsApi $ appSettings
-  appNextWordsApiRefresh <- newTVarIO now
+  _appRemainingWordsApiRequests <- newTVarIO . wordsApiLimit . appWordsApi $ _appSettings
+  _appNextWordsApiRefresh <- newTVarIO now
 
-  appLogger <- do
+  _appLogger <- do
     logSet <- newStdoutLoggerSet defaultBufSize
     logDate <- fst <$> clockDateCacher
     pure $ Logger logSet logDate
 
-  let appScheduler = error "scheduler not initialized"
-      baseAppl = App {..}
-
-  scheduler <- async $ runLoggingT (runReaderT wordsApiScheduler baseAppl) (messageLoggerSource baseAppl appLogger)
-
-  pure $ baseAppl { appScheduler = scheduler }
+  pure App {..}
 
 startApplication :: IO ()
 startApplication = do
   appl <- makeFoundation
 
-  runLoggingT (runReaderT M.seedDb appl) (messageLoggerSource appl $ appLogger appl)
+  runLoggingT (runReaderT M.seedDb appl) (messageLoggerSource appl $ _appLogger appl)
 
   warp 3000 appl

@@ -1,11 +1,8 @@
-resolver: lts-7.12
+resolver: lts-14.22
 packages:
 - '.'
 extra-deps:
-  - csv-conduit-0.6.7
-  - scalpel-0.4.0
+  - csv-conduit-0.7.1.0
   - random-extras-0.19
 flags: {}
 extra-package-dbs: []
-docker:
-  enable: true

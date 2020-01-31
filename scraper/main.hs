@@ -1,5 +1,5 @@
 import ClassyPrelude
-import Conduit (Conduit, mapC, runResourceT, sinkFile)
+import Conduit (ConduitT, mapC, runResourceT, sinkFile)
 import Data.Conduit (connect, fuse)
 import Data.Conduit.List (sourceList)
 import Data.CSV.Conduit (defCSVSettings, fromCSV, writeHeaders)
@@ -12,7 +12,7 @@ import Text.HTML.Scalpel
 import qualified Types as T
 
 defaultConfig :: Config Text
-defaultConfig = Config [] utf8Decoder
+defaultConfig = Config utf8Decoder Nothing
 
 scrapeSlangitEntryPage :: Text -> Text -> IO T.Entry
 scrapeSlangitEntryPage url keyword = do
@@ -37,7 +37,7 @@ scrapeSlangitListPage url = do
 main :: IO ()
 main = do
   slangitEntries <- scrapeSlangitListPage "http://slangit.com/emoticons/kaomoji"
-  let headerRow :: forall m . Monad m => Conduit (Map ByteString ByteString) m ByteString
+  let headerRow :: forall m . Monad m => ConduitT (Map ByteString ByteString) ByteString m ()
       headerRow = writeHeaders defCSVSettings
   runResourceT $ do
     sourceList slangitEntries

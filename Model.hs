@@ -1,18 +1,12 @@
 module Model where
 
 import ClassyPrelude
-import Control.Lens (Iso', _Just, from, iso, over, preview, to, view)
-import Conduit (mapM_C, runResourceT, sourceFileBS)
-import Data.Conduit (connect, fuse)
-import Data.CSV.Conduit (defCSVSettings, intoCSV)
-import Data.CSV.Conduit.Conversion (Named(Named))
-import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
-import Data.List (nub)
-import Database.Persist (Entity(Entity), Key, PersistEntity, count, entityKey, entityVal, insert_, repsert, selectFirst, (==.))
+import Control.Lens (Iso', from, iso, to, view)
+import Database.Persist (Entity(Entity), Key, PersistEntity, entityKey, entityVal)
 import Database.Persist.Quasi (upperCaseSettings)
 import Database.Persist.Sql (runMigration)
 import Database.Persist.TH (mkMigrate, mkPersist, mpsGenerateLenses, mpsGeneric, persistFileWith, share, sqlSettings)
-import Foundation (App(appSettings), runDb)
+import Foundation (App, appSettings, runDb)
 import Settings (appEntriesSeedCsv)
 import qualified Types as T
 
@@ -20,28 +14,30 @@ let settings = sqlSettings { mpsGenerateLenses = True, mpsGeneric = False }
  in share [mkPersist settings, mkMigrate "migrateAll"]
     $(persistFileWith upperCaseSettings "models")
 
-seedDb :: (MonadBaseControl IO m, MonadIO m, MonadReader App m, MonadThrow m) => m ()
+-- FIXME upgrade for latest LTS
+seedDb :: (MonadUnliftIO m, MonadReader App m) => m ()
 seedDb = do
-  entriesSeedCsv <- asks (appEntriesSeedCsv . appSettings)
-  runResourceT . runDb $ do
-    -- create tables and wipe them
-    runMigration migrateAll
+  _entriesSeedCsv <- appEntriesSeedCsv <$> view appSettings
 
-    -- seed entry table from csv and initialize synonym table
-    sourceFileBS entriesSeedCsv
-      `fuse` intoCSV defCSVSettings
-      `connect` mapM_C ( \ (Named new) -> do
-                           let keyword = view T.entryKeyword new
-                           void . whenM ((< 1) <$> count [SynonymDBKeyword ==. keyword]) $
-                             insert_ . view synonymIso . T.Synonym keyword [] . posixSecondsToUTCTime . fromInteger $ 0
-                           prevMay <- preview (_Just . from keyedEntryIso) <$> selectFirst [EntryDBKeyword ==. keyword] []
-                           case prevMay of
-                             Just prev -> -- merge existing entries
-                               let replacement = over (T.ent . T.entryEntries) (nub . (<> view T.entryEntries new)) prev
-                                   (replacementKey, replacementEntity) = entityKey &&& entityVal $ view keyedEntryIso replacement
-                               in repsert replacementKey replacementEntity
-                             Nothing -> insert_ $ view entryIso new
-                       )
+  -- create tables and wipe them
+  runDb $ runMigration migrateAll
+
+--   runResourceT $ do
+--     -- seed entry table from csv and initialize synonym table
+--     sourceFileBS entriesSeedCsv
+--       `fuse` intoCSV defCSVSettings
+--       `connect` mapM_C ( \ (Named new) -> do
+--                            let keyword = view T.entryKeyword new
+--                            void . whenM ((< 1) <$> runDb (count [SynonymDBKeyword ==. keyword])) $
+--                              insert_ . view synonymIso . T.Synonym keyword [] . posixSecondsToUTCTime . fromInteger $ 0
+--                            prevMay <- runDb $ preview (_Just . from keyedEntryIso) <$> selectFirst [EntryDBKeyword ==. keyword] []
+--                            case prevMay of
+--                              Just prev -> -- merge existing entries
+--                                let replacement = over (T.ent . T.entryEntries) (nub . (<> view T.entryEntries new)) prev
+--                                    (replacementKey, replacementEntity) = entityKey &&& entityVal $ view keyedEntryIso replacement
+--                                in runDb $ repsert replacementKey replacementEntity
+--                              Nothing -> insert_ $ view entryIso new
+--                        )
 
 keyedIso :: (PersistEntity db)
          => Iso' api db

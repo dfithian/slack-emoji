@@ -8,7 +8,7 @@ import Data.Aeson (FromJSON(parseJSON), eitherDecodeStrict', withObject, (.:))
 import Foundation (App, appRemainingWordsApiRequests, appSettings)
 import Network.HTTP.Types (HeaderName, statusIsSuccessful)
 import Network.URI (URI(uriPath))
-import Network.Wreq (Response, checkStatus, defaults, header, getWith, responseBody, responseHeader, responseStatus)
+import Network.Wreq (Response, checkResponse, defaults, header, getWith, responseBody, responseHeader, responseStatus)
 import Settings (appWordsApi, wordsApiToken, wordsApiUri)
 
 requestsRemainingHeader :: HeaderName
@@ -44,17 +44,17 @@ parseWordsApiResponse response =
       over _Left (\ msg -> pack $ "failed to decode response \'" <> unpack (decodeUtf8 body) <> "\': " <> msg) $ eitherDecodeStrict' body
     status -> Left $ "failed with error " <> tshow status
 
-wordsApiRequest :: (MonadBaseControl IO m, MonadIO m, MonadLogger m, MonadReader App m, FromJSON a) => Text -> m (Either Text a)
+wordsApiRequest :: (MonadIO m, MonadLogger m, MonadReader App m, FromJSON a) => Text -> m (Either Text a)
 wordsApiRequest path = do
-  remainingRequestsTv <- asks appRemainingWordsApiRequests
+  remainingRequestsTv <- view appRemainingWordsApiRequests
   remainingRequests <- liftIO . atomically . readTVar $ remainingRequestsTv
   case (remainingRequests > 0) of
     False -> pure $ Left "no requests remaining"
     True -> do
-      uri <- asks (wordsApiUri . appWordsApi . appSettings)
-      token <- asks (wordsApiToken . appWordsApi . appSettings)
+      uri <- wordsApiUri . appWordsApi <$> view appSettings
+      token <- wordsApiToken . appWordsApi <$> view appSettings
       let opts = set (header requestMashapeKey) [encodeUtf8 token]
-                 . set checkStatus (Just $ \ _ _ _ -> Nothing)
+                 . set checkResponse Nothing
                  $ defaults
       rawResponse <- liftIO $ getWith opts (show $ uri { uriPath = unpack path })
       let requestsRemainingMay = do

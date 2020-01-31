@@ -7,7 +7,7 @@ import qualified Data.List.NonEmpty as NEL
 import Data.Random.Extras (choice)
 import Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 import Database.Persist (SelectOpt(LimitTo), insert_, selectFirst, selectList, (==.))
-import Foundation (ApiResult, App, Handler, apiBadRequest, apiNotFound, asTypedContent, runApiResult, runDb, runRandom)
+import Foundation (ApiResult, Handler, HasApp, apiBadRequest, apiNotFound, asTypedContent, runApiResult, runDb, runRandom)
 import qualified Model as M
 import qualified Types as T
 import Yesod.Core (lookupGetParam)
@@ -16,8 +16,8 @@ oneOf :: NonEmpty a -> IO a
 oneOf (x :| []) = pure x
 oneOf (x :| xs) = runRandom $ choice (x:xs)
 
-entryForKeyword :: (MonadBaseControl IO m, MonadIO m, MonadReader App m) => Text -> ApiResult m (Maybe T.Entry)
-entryForKeyword k = preview (_Just . from M.keyedEntryIso . T.ent) <$> runDb (selectFirst [M.EntryDBKeyword ==. k] [])
+entryForKeyword :: (HasApp r, MonadIO m, MonadReader r m) => Text -> ApiResult m (Maybe T.Entry)
+entryForKeyword k = preview (_Just . from M.keyedEntryIso . T.ent) <$> lift (runDb (selectFirst [M.EntryDBKeyword ==. k] []))
 
 -- |Look up an emoji by keyword or using an alternative synonym
 getEmojiR :: Handler ()

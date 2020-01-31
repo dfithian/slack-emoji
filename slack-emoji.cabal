@@ -1,12 +1,15 @@
--- This file has been generated from package.yaml by hpack version 0.15.0.
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: 053214e795094dc594c76ce15c53599f199c2fed5be812630dd3f753406cf03f
 
 name:               slack-emoji
 version:            2.1
 maintainer:         Dan Fithian
 license:            AllRightsReserved
-cabal-version:      >= 1.10
 build-type:         Simple
 
 library
@@ -50,14 +53,17 @@ library
           Emoji
           Foundation
           Model
-          Scheduler
           Settings
           Types
           WordsApi
+    other-modules:
+          Paths_slack_emoji
     default-language: Haskell2010
 
 executable scraper-emoji
     main-is: main.hs
+    other-modules:
+          Paths_slack_emoji
     hs-source-dirs:
           scraper
     default-extensions: DataKinds DeriveDataTypeable DeriveGeneric EmptyDataDecls FlexibleContexts FlexibleInstances GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude NoMonomorphismRestriction OverloadedStrings PackageImports QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeFamilies ViewPatterns
@@ -85,6 +91,7 @@ executable scraper-emoji
         , random-extras
         , random-fu
         , scalpel
+        , slack-emoji
         , text
         , time
         , wai-extra
@@ -93,11 +100,12 @@ executable scraper-emoji
         , wreq
         , yesod
         , yesod-core
-        , slack-emoji
     default-language: Haskell2010
 
 executable slack-emoji
     main-is: main.hs
+    other-modules:
+          Paths_slack_emoji
     hs-source-dirs:
           app
     default-extensions: DataKinds DeriveDataTypeable DeriveGeneric EmptyDataDecls FlexibleContexts FlexibleInstances GADTs GeneralizedNewtypeDeriving LambdaCase MultiParamTypeClasses NamedFieldPuns NoImplicitPrelude NoMonomorphismRestriction OverloadedStrings PackageImports QuasiQuotes RankNTypes RecordWildCards ScopedTypeVariables StandaloneDeriving TemplateHaskell TupleSections TypeFamilies ViewPatterns
@@ -125,6 +133,7 @@ executable slack-emoji
         , random-extras
         , random-fu
         , scalpel
+        , slack-emoji
         , text
         , time
         , wai-extra
@@ -133,5 +142,4 @@ executable slack-emoji
         , wreq
         , yesod
         , yesod-core
-        , slack-emoji
     default-language: Haskell2010

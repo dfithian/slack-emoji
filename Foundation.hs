@@ -1,7 +1,7 @@
 module Foundation (module Foundation, Route(..)) where
 
 import ClassyPrelude hiding (intersect, span)
-import Control.Lens (_2, over)
+import Control.Lens (_2, lens, makeClassy, over, view)
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Data.Aeson (ToJSON, toJSON, object, (.=))
 import Data.Random (MonadRandom, RVar, StdRandom(StdRandom), runRVar)
@@ -16,33 +16,42 @@ import Yesod.Core
   , renderRoute, sendResponseStatus
   , lookupHeader, toContent, toHtml, typeHtml, typeJson )
 import Yesod.Core.Dispatch (mkYesodData, parseRoutes)
-import Yesod.Core.Types (Logger)
+import Yesod.Core.Types (HandlerData, Logger, handlerEnv, rheSite)
 
 data App = App
-  { appConnectionPool            :: ConnectionPool
+  { _appConnectionPool            :: ConnectionPool
   -- ^ The database connection pool
-  , appSettings                  :: AppSettings
+  , _appSettings                  :: AppSettings
   -- ^ Settings as defined in "Settings"
-  , appRemainingWordsApiRequests :: TVar Int
+  , _appRemainingWordsApiRequests :: TVar Int
   -- ^ Remaining requests to the rate-limited words api
-  , appNextWordsApiRefresh       :: TVar UTCTime
+  , _appNextWordsApiRefresh       :: TVar UTCTime
   -- ^ The next time to check for synonym refresh
-  , appLogger                    :: Logger
+  , _appLogger                    :: Logger
   -- ^ The logger for the application, the very same that Yesod uses
-  , appScheduler                 :: Async ()
   }
+
+makeClassy ''App
 
 mkYesodData "App" [parseRoutes|
 / EmojiR GET
 |]
 
-instance Yesod App
-  where makeLogger = pure . appLogger
+instance Yesod App where
+  makeLogger = pure . view appLogger
 
-runDb :: (MonadBaseControl IO m, MonadReader App m) => SqlPersistT m a -> m a
+instance HasApp (HandlerData child App) where
+  app = lens get set
+    where
+      get = rheSite . handlerEnv
+      set d x =
+        let e = handlerEnv d
+        in d { handlerEnv = e { rheSite = x } }
+
+runDb :: (HasApp r, MonadIO m, MonadReader r m) => SqlPersistT IO a -> m a
 runDb action = do
-  pool <- asks appConnectionPool
-  runSqlPool action pool
+  pool <- view appConnectionPool
+  liftIO $ runSqlPool action pool
 
 runRandom :: MonadRandom m => RVar a -> m a
 runRandom = flip runRVar StdRandom
@@ -53,13 +62,13 @@ newtype ApiErrorReason = ApiErrorReason { unApiErrorReason :: Text }
 instance ToJSON ApiErrorReason where
   toJSON (ApiErrorReason reason) = object ["message" .= reason]
 
-apiBadRequest :: MonadBaseControl IO m => Text -> ApiResult m a
+apiBadRequest :: MonadIO m => Text -> ApiResult m a
 apiBadRequest = throwError . (badRequest400,)
 
-apiNotFound :: MonadBaseControl IO m => Text -> ApiResult m a
+apiNotFound :: MonadIO m => Text -> ApiResult m a
 apiNotFound = throwError . (notFound404,)
 
-apiInternalError :: MonadBaseControl IO m => Text -> ApiResult m a
+apiInternalError :: MonadIO m => Text -> ApiResult m a
 apiInternalError = throwError . (internalServerError500,)
 
 asHtml :: Text -> TypedContent
@@ -79,7 +88,7 @@ asTypedContent b = do
     Just "application/json" -> asJson b
     _ -> asJson b
 
-runApiResult :: (MonadBaseControl IO m, MonadHandler m) => (a -> TypedContent) -> ApiResult m a -> m ()
+runApiResult :: (MonadIO m, MonadHandler m) => (a -> TypedContent) -> ApiResult m a -> m ()
 runApiResult serialize result = do
   onError <- asTypedContent False
   (status, message) <- either (over _2 onError) ((ok200,) . serialize) <$> runExceptT result
