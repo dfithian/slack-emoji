@@ -27,6 +27,7 @@ stack build --fast
 ## Running
 
 ```bash
+# TODO need to run the seed script to seed the database
 stack exec slack-emoji
 curl http://localhost:3000/?text=happy
 ```
