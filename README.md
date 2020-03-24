@@ -1,5 +1,7 @@
 # slack-emoji
 
+**No longer maintained, see https://kaomoji.moe/**
+
 Web service providing text emojis by lookup term. Originally developed as a slash command in Slack.
 
 TODO needs instructions for setting up Slack.
